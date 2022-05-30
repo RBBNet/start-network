@@ -29,6 +29,7 @@ x-defaults:
     BESU_HOST_ALLOWLIST: "*"
     BESU_DISCOVERY_ENABLED: "true"
     BESU_STATIC_NODES_FILE: "/var/lib/besu/static-nodes.json"
+    BESU_BOOTNODES:
 
   besu-log-config: &besu-log-config
     source: log-config
