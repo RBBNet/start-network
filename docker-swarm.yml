@@ -28,7 +28,6 @@ x-defaults:
     BESU_RPC_HTTP_CORS_ORIGINS: "*"
     BESU_HOST_ALLOWLIST: "*"
     BESU_DISCOVERY_ENABLED: "true"
-    BESU_STATIC_NODES_FILE: "/var/lib/besu/static-nodes.json"
     BESU_BOOTNODES:
 
   besu-log-config: &besu-log-config
@@ -49,6 +48,21 @@ x-defaults:
     environment:
       << : *localization-default
       << : *besu-env-config-default
+    configs:
+      - *besu-log-config
+      - *besu-genesis-config
+      - *besu-static-nodes-config
+    command: >-
+      --Xdns-enabled=true
+      --Xdns-update-enabled=true
+
+  besu-node-validator: &besu-node-validator
+    image: ${IMAGE_BESU}
+    logging: *logging-default
+    environment:
+      << : *localization-default
+      << : *besu-env-config-default
+      BESU_STATIC_NODES_FILE: "/var/lib/besu/static-nodes.json"
     configs:
       - *besu-log-config
       - *besu-genesis-config
@@ -112,7 +126,7 @@ services:
       - ${VOLUMES_ROOT}/writer2/:/var/lib/besu/
 
   validator1:
-    << : *besu-node-default
+    << : *besu-node-validator
     deploy:
       labels:
         - "traefik.enable=true"
@@ -125,7 +139,7 @@ services:
       - ${VOLUMES_ROOT}/validator1/:/var/lib/besu/
 
   validator2:
-    << : *besu-node-default
+    << : *besu-node-validator
     deploy:
       labels:
         - "traefik.enable=true"
@@ -138,7 +152,7 @@ services:
       - ${VOLUMES_ROOT}/validator2/:/var/lib/besu/
 
   validator3:
-    << : *besu-node-default
+    << : *besu-node-validator
     deploy:
       labels:
         - "traefik.enable=true"
@@ -151,7 +165,7 @@ services:
       - ${VOLUMES_ROOT}/validator3/:/var/lib/besu/
 
   validator4:
-    << : *besu-node-default
+    << : *besu-node-validator
     deploy:
       labels:
         - "traefik.enable=true"
