@@ -1,0 +1,93 @@
+# my global config
+global:
+  scrape_interval: 5s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - 'rules-blockchain.yml'
+  - 'rules-rbb.yml'
+  - 'rules-rbb-lab.yml'
+  # - 'first_rules.yml'
+  # - 'second_rules.yml'
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+
+scrape_configs:
+  - job_name: 'prometheus'
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+
+  - job_name: 'besu-nodes'
+#  - job_name: 'rbb-nodes'
+#    metric_relabel_configs:
+#      - source_labels: ['instance']
+#        replacement: 'node-$1'
+    static_configs:
+      - targets:
+        {{#each nodes}}
+          - {{name}}:9545
+        {{/each}}
+        labels:
+          network: 'rbb'
+          org: 'bndes'
+
+  - job_name: 'besu-nodes-lab'
+#  - job_name: 'rbb-lab-nodes'
+    scrape_interval: 15s
+    proxy_url: 'http://proxy01.bndes.net:8080'
+    static_configs:
+      - targets:
+          - 35.184.17.253:9091
+        labels:
+          network: 'rbb-lab'
+#    honor_labels: true
+    metric_relabel_configs:
+      - source_labels: ['instance']
+        action: keep
+      - source_labels: ['exported_job']
+        target_label: 'instance'
+      - regex: 'exported_job'
+        action: labeldrop
+      - source_labels: ['instance']
+        regex: 'bndes-.*'
+        target_label: 'org'
+        replacement: 'bndes'
+      - source_labels: ['instance']
+        regex: 'dataprev-.*'
+        target_label: 'org'
+        replacement: 'dataprev'
+      - source_labels: ['instance']
+        regex: 'iadb_.*'
+        target_label: 'org'
+        replacement: 'bid'
+      - source_labels: ['instance']
+        regex: 'prodemge-.*'
+        target_label: 'org'
+        replacement: 'prodemge'
+      - source_labels: ['instance']
+        regex: 'rnp_.*'
+        target_label: 'org'
+        replacement: 'rnp'
+      - source_labels: ['instance']
+        regex: 'PUCRio.*'
+        target_label: 'org'
+        replacement: 'pucrio'
+      - source_labels: ['instance']
+        regex: 'rbbcpqd.*'
+        target_label: 'org'
+        replacement: 'cpqd'

@@ -1,0 +1,117 @@
+# Favor não editar diretamente o arquivo docker-swarm.yml, pois ele é gerado automaticamente a partir do docker-swarm.yml.hbs
+version: '3.4'
+
+x-defaults:
+
+  logging: &logging-default
+    options:
+      max-size: '10m'
+      max-file: '5'
+    driver: json-file
+
+  localization: &localization-default
+    TZ: America/Sao_Paulo
+    LANG: en_US.UTF-8
+
+services:
+
+{{#each nodes}}
+  {{name}}:
+    image: ${IMAGE_BESU}
+    logging: *logging-default
+    environment:
+      << : *localization-default
+      BESU_METRICS_ENABLED: "true"
+      BESU_METRICS_HOST: "0.0.0.0"
+      LOG4J_CONFIGURATION_FILE: "/var/lib/besu/log.xml"
+      BESU_DATA_PATH: "/var/lib/besu"
+      BESU_GENESIS_FILE: "/var/lib/besu/genesis.json"
+      BESU_RPC_HTTP_ENABLED: "true"
+      BESU_RPC_HTTP_API: "ADMIN,ETH,TXPOOL,NET,IBFT,WEB3,DEBUG,TRACE"
+      BESU_RPC_HTTP_CORS_ORIGINS: "*"
+      BESU_HOST_ALLOWLIST: "*"
+      BESU_DISCOVERY_ENABLED: "true"
+      BESU_STATIC_NODES_FILE: "/var/lib/besu/static-nodes.json"
+    {{#if environment.isDockerSwarm}}
+    configs:
+    - source: log-config
+      target: /var/lib/besu/log.xml
+    - source: genesis-config
+      target: /var/lib/besu/genesis.json
+    - source: node-{{name}}-privkey-config
+      target: /var/lib/besu/key
+    - source: static-nodes-config
+      target: /var/lib/besu/static-nodes.json
+    {{/if}}
+    command: >-
+      --Xdns-enabled=true
+      --Xdns-update-enabled=true
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.{{name}}-jsonrpc.rule=PathPrefix(`/nodes/{{name}}`)"
+        - "traefik.http.routers.{{name}}-jsonrpc.entryPoints=web"
+        - "traefik.http.routers.{{name}}-jsonrpc.middlewares={{name}}-stripPrefix@docker"
+        - "traefik.http.routers.{{name}}-jsonrpc.service={{name}}-jsonrpc"
+        - "traefik.http.middlewares.{{name}}-stripPrefix.stripPrefix.prefixes=/nodes/{{name}}"
+        - "traefik.http.services.{{name}}-jsonrpc.loadbalancer.server.port=8545"
+        - "traefik.http.services.{{name}}-jsonrpc-ws.loadbalancer.server.port=8546"
+        - "traefik.http.services.{{name}}-metrics.loadbalancer.server.port=9545"
+    volumes:
+      - ${VOLUMES_ROOT}/{{name}}/:/var/lib/besu/
+      {{#unless environment.isDockerSwarm}}
+      - ${CONFIG_ROOT}/genesis.json:/var/lib/besu/genesis.json
+      - ${CONFIG_ROOT}/static-nodes.json:/var/lib/besu/static-nodes.json
+      - ${CONFIG_ROOT}/log.xml:/var/lib/besu/log.xml
+      {{/unless}}
+    {{#if ports}}
+    ports:
+      {{#each ports}}
+      - {{.}}
+      {{/each}}
+    {{/if}}
+
+{{/each}}
+
+
+  traefik:
+    image: ${IMAGE_TRAEFIK}
+    logging: *logging-default
+    environment:
+      << : *localization-default
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      {{#if environment.isDockerSwarm}}
+      - "--providers.docker.swarmMode=true"
+      {{/if}}
+      - "--providers.docker.exposedByDefault=true"
+      - "--providers.docker.constraints=Label(`com.docker.stack.namespace`,`${STACK_NAME}`)"
+      - "--entryPoints.web.address=:80"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addRoutersLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+      - "--log.level=DEBUG"
+    ports:
+      - "${APP_WEB_PORT}:80"
+      - "${APP_TRAEFIK_PORT}:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+{{#if environment.isDockerSwarm}}
+configs:
+  genesis-config:
+      file: .env.configs/genesis.json
+  static-nodes-config:
+      file: .env.configs/static-nodes.json
+  log-config:
+      file: .env.configs/log.xml
+  {{#each nodes}}
+  node-{{name}}-privkey-config:
+    file: .env.configs/nodes/{{name}}/key
+  {{/each}}
+{{/if}}

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+__EXEC__="$(realpath -s ${BASH_SOURCE[0]})"
+__DIRE__="${__EXEC__%/*}"
+__FILE__="$(readlink -f ${BASH_SOURCE[0]})"
+__DIR__="${__FILE__%/*}"
+
+set -e
+
+source "${__DIR__}/common/besu.sh"
+source "${__DIR__}/common/json.sh"
+
+shopt -s nullglob
+
+for envfile in .env.defaults* .env.local*; do
+	source $envfile
+done
+
+CONFIG_ROOT=${CONFIG_ROOT:-"${PWD}/.env.configs"}
+VOLUMES_ROOT=${VOLUMES_ROOT:-"${PWD}/volumes"}
+
+# list nodes
+
+for NODE_CONFIG_PATH in "${CONFIG_ROOT}/nodes/"*; do
+	NODE_NAME=$(basename "${NODE_CONFIG_PATH}")
+	NODE_PUBKEY=$(besu_get_publickey "${NODE_CONFIG_PATH}")
+	NODE_ADDRESS=$(besu_get_address "${NODE_CONFIG_PATH}")
+	printf '%s;%s;%s\n' "${NODE_NAME}" "${NODE_PUBKEY}" "${NODE_ADDRESS}"
+done |
+	jq --raw-input 'split(";") | { name: .[0], publicKey: .[1], address: .[2] }' |
+	jq --slurp '{ nodes: . }' |
+	jq --slurp '(.[].nodes |= (map({key:.name, value:.}) | from_entries))
+		| reduce .[] as $item ({}; . * $item)
+		| (.nodes |= map(.))' - config*.json
+
+shopt -u nullglob

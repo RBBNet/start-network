@@ -9,5 +9,4 @@ source .dtoolx/scripts/common.sh
 
 curl -skX POST \
 	--data "$(printf '{ "jsonrpc": "2.0", "method": "%s", "params": %s, "id": 1 }' "${method}" "${params}")" \
-	--header "$(printf 'Host: rbb-%s.dsv.bndes.net' "${target}")" \
-	http://localhost:${APP_WEB_PORT}/
+	http://localhost:${APP_WEB_PORT}/nodes/${target}

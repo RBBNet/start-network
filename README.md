@@ -1,50 +1,111 @@
-# Projeto rbb-network.deployment-dkr
+# rbb-network
 
-Arquivo gerado automaticamente ao configurar o repositório. É exibido automaticamente ao se acessar a página do projeto no GitLab.
+## Histórico
 
-Edite-o livremente para registrar informações sobre o projeto e seu ambiente de desenvolvimento.
+Atualmente, existe um ambiente com nodes besu/hyperledger na DMZ, conectados com nodes de outras entidades, formando uma rede RBB "LAB". Esses nodes são acessados pelas seguintes aplicações, que executam no Docker Swarm de DSV:
+- rbb-explorer
+- rbb-permissionamento
+- rbb-identificacao
 
+Essas aplicações consultam informações da blockchain através da interface JSON-RPC/HTTPS dos nodes, com autenticação IP/BasicAuth.
+Os nodes besu desse ambiente foram implantados com apoio do BID, utilizando playbooks ansible do projeto LACChain, customizados internamente para nossa infraestrutura.
 
-## Git
-Você encontra dicas práticas de Git na página [Git Flight Rules](https://github.com/k88hudson/git-flight-rules).
+Foi criado um novo ambiente de nodes besu, com acesso exclusivamente interno, para desenvolvimento de aplicações.
+Esse novo ambiente roda inteiramente no Docker Swarm DSV, com scripts desenvolvidos internamente.
 
+## Estrutura
 
-## Integração Contínua
-O arquivo pipeline.yml é utilizado para configurar jobs pipeline do seu sistema.
-Versione esse arquivo  no diretório raiz do repositório no Gitlab [ver instruções de configuração](https://gitlab.bndes.net/PADROES-GER-CONFIGURACAO/artefatos/wikis/configuracao-pipeline-para-integracao-continua).
+O seguinte grafo expressa "conexões naturais", que tendem a ocorrer por disponibilidade de informações para isso. Não existe garantia de que realmente vão ocorrer todas essas conexões, pois o besu tenta balancear conectividade e uso de banda, dentro dos limites configurados.
 
-Após dar _push_ do arquivo `pipeline.yml` do projeto, use o seguinte autosserviço do RunDeck para [criar os jobs Jenkins de Integração contínua](https://rundeck.bndes.net/project/Apoio_Desenvolvimento_ATI/job/show/d132e837-9995-4307-9d20-0f876e63a39b).
+```nomnoml
+[rbb-network-dsv|
+  [bootnodes|
+    [boot1]--[boot2]
+  ]
 
-Abaixo linkamos os jobs de _integração contínua_ no [Jenkins](https://jenkins.bndes.net/):
+  [validators/static-nodes|
+    [validator1]
+    [validator2]
+    [validator3]
+    [validator4]
+    [validator1]--[validator2]
+    [validator3]--[validator4]
+    [validator1]--[validator3]
+    [validator2]--[validator4]
+    [validator1]--[validator4]
+    [validator2]--[validator3]
+  ]
 
-### [Job Snapshot](https://jenkins.bndes.net/job/APS-rbb-network.deployment-dkr-Snapshot)
-Job que é executado automaticamente a cada commit. Compila o código e executa os testes JUnit. Envia e-mails para os desenvolvedores quando o build quebra, e quando volta a funcionar. Caso o build quebre, deve ser consertado o mais rapidamente possível para que não atrapalhar o trabalho dos demais desenvolvedores. Copia a versão snapshot gerada para o repositório Nexus.
-Caso sua mensagem de commit tenha na primeira linha a tag _#deploy_, o job de snapshot
-automaticamente fará o deploy do binário gerado para o servidor Liberty de DSV.
-### [Job Release](https://jenkins.bndes.net/job/APS-rbb-network.deployment-dkr-Release)
-Executar quando for gerar novo release. 
+  [bootnodes]--[writer1]
+  [bootnodes]--[writer2]
+  [bootnodes]--[validators/static-nodes]
+]
+```
 
-Gera uma tag git para marcar a versão do projeto no repositório. Incrementa automaticante o número de versão. Verifica se versão a ser gerada está atualizada com todas as modificações já colocadas em produção, isto é, se o branch em que está sendo gerado o release está sincronizado com o branch _master_. Copia a versão do release para o repositório Nexus. Pode ainda instalar a versão gerada nos ambientes de DSV, HOM e PRD.
-Por motivos de auditoria, falhará caso se tente gerar binários com um número de versão já existente. 
+O arquivo `genesis.json` é populado automaticamente com os endereços dos bootnodes, que também podem ser definidos por variável de ambiente. Dessa forma, todos os nodes tem acesso a lista de bootnodes, e através deles podem encontrar outros nodes para se conectarem.
+O arquivo `static-nodes.json` é populado automaticamente com os endereços dos validadores, e esse arquivo é utilizado pelos próprios validadores. Dessa forma, os validadores possuem uma lista estática de todos validadores, e conseguem se conectar entre eles sem necessidade de comunicação para discovery de outros peers. 
 
-### [Job Passagem Produção](https://jenkins.bndes.net/job/APS-rbb-network.deployment-dkr-ProducaoPipeline)
-Executar para realizar uma passagem de versão para produção, implantará e criará mudança.
-Faz merge de todas as modificações do release para o branch _master_, garantindo assim que a versão mais recente no _master_ é a versão que está em produção e que nenhum código já passado para produção será perdido. Efetiva passagens de aplicações para produção automaticamente após aprovação de gestores do projeto.
+## Utilização
 
+### Inicializar uma blockchain local
 
-## Liberty e RunDeck
-### [RunDeck para colocar sistema no ar](https://rundeck.bndes.net/project/Liberty_v2/jobs)
-Há um job RunDeck para [implantar um serviço em DSV/TST manualmente](https://rundeck.bndes.net/project/Liberty_v2/job/show/75f38aa2-0c17-447b-980d-dca068e353d2), e outro para [publicar em homologação](https://rundeck.bndes.net/job/show/e59172ac-c210-4685-898d-9215203a0790).
+Execute o seguinte comando:
+```bash
+commands/blockchain-init
+```
 
-## [Sonar](http://vrt0764:8380/)
+Esse comando inicializa a blockchain criando os seguintes arquivos:
+- `${VOLUMES_ROOT}/*/key{,.pub}`
+  
+  Esses são os arquivos com as chaves privadas e públicas dos validadores e boot nodes, que serão inseridos no `genesis.json` e `static-nodes.json`.
+  
+- `.env.configs/genesis.json`
 
-O [job do Sonar](https://jenkins.bndes.net/job/APS-rbb-network.deployment-dkr-Sonar/) executa uma vez por dia e executa validações estáticas no código fonte. Assim bugs podem ser identificados antes de acontecerem. 
+  Gerado a partir do `.env.configs/init/genesis-config.json`, inserindo automaticamente as chaves públicas dos validadores iniciais no campo `extraData`, e os endereços dos bootnodes no campo `config.discovery.bootnodes`.
 
-### Receba notificações do Sonar por email
+- `.env.configs/static-nodes.json`
 
-Você pode configurar o Sonar para te enviar notificações quando um commit seu gerar débitos técnicos. Faça isto em 2 passos. Primeiro selecione os projetos para receber notificações:
+  Esse arquivo contém a lista de validadores.
 
-![Selecione os projetos](https://gitlab.bndes.net/PADROES-GER-CONFIGURACAO/artefatos/uploads/30fe47b3ac7b1aa8893ea5f2718e591e/image.png)
+Para alterar o número de validadores e boot nodes iniciais, é necessário definir as respectivas variáveis de ambiente, como no comando a seguir:
+```bash
+env VALIDATOR_COUNT=4 BOOT_COUNT=2 commands/blockchain-init
+```
+Também é necessário alterar o arquivo `docker-swarm.yml` de acordo.
 
-Depois escolha as notificações a receber:
-![Notificações a receber](https://gitlab.bndes.net/PADROES-GER-CONFIGURACAO/artefatos/uploads/eadf929e2266d3cf74cf61d29b0eccde/image.png)
+### Executar métodos RPC em um dos nodes
+
+Execute da seguinte forma:
+```bash
+# commands/node-rpc <NODE> <MÉTODO> <PARÂMETROS>
+# Exemplos:
+
+# consulta informações do node
+commands/node-rpc boot1 admin_nodeInfo
+
+# consulta peers conectados
+commands/node-rpc writer2 admin_peers
+
+# consulta métricas de assinadores dos blocos
+commands/node-rpc validator1 ibft_getSignerMetrics
+
+# consulta votos para novos validadores pendentes
+commands/node-rpc validator2 ibft_getPendingVotes
+
+# propõe validador
+commands/node-rpc validator3 ibft_proposeValidatorVote '["42d4287eac8078828cf5f3486cfe601a275a49a5", true]'
+
+# consulta validadores que assinaram blocos listados
+commands/node-rpc validator4 ibft_getValidatorsByBlockNumber '["485568"]'
+```
+
+### Subir os nodes
+
+Execute os seguintes comandos:
+```bash
+set -a
+source .env.defaults
+set +a
+
+docker stack deploy -c docker-swarm.yml ${STACK_NAME}
+```
