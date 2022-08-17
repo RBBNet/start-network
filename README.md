@@ -47,31 +47,44 @@ O arquivo `static-nodes.json` é populado automaticamente com os endereços dos 
 
 ## Utilização
 
-### Inicializar uma blockchain local
+### Preparação
+
+Faça o download da release mais recente e execute o seguinte comando para descomprimir:
+```bash
+tar xzf rbb-setup-${VERSION}.tgz
+```
+
+
+### Inicializar/Conectar em uma blockchain
 
 Execute o seguinte comando:
 ```bash
-commands/blockchain-init
+VALIDATOR_COUNT=4 BOOT_COUNT=2 WRITER_COUNT=2 commands/blockchain-setup
 ```
 
-Esse comando inicializa a blockchain criando os seguintes arquivos:
-- `${VOLUMES_ROOT}/*/key{,.pub}`
-  
-  Esses são os arquivos com as chaves privadas e públicas dos validadores e boot nodes, que serão inseridos no `genesis.json` e `static-nodes.json`.
-  
+Esse comando inicializa/conecta em uma blockchain, criando os seguintes arquivos para os nodes que serão utilizados, caso ainda não existam:
+
+- `${CONFIG_ROOT}/nodes/${NODE_NAME}/key`
+
+  Chave privada do respectivo node.
+
+- `${CONFIG_ROOT}/nodes/${NODE_NAME}/key.pub`
+
+  Chave pública do respectivo node.
+
+- `${CONFIG_ROOT}/nodes/${NODE_NAME}/node.address`
+
+  Endereço do respectivo node.
+
 - `.env.configs/genesis.json`
 
-  Gerado a partir do `.env.configs/init/genesis-config.json`, inserindo automaticamente as chaves públicas dos validadores iniciais no campo `extraData`, e os endereços dos bootnodes no campo `config.discovery.bootnodes`.
+  Caso não exista, será gerado automaticamente, inserindo as chaves públicas dos validadores no campo `extraData`, e os endereços dos bootnodes no campo `config.discovery.bootnodes`.
+  Caso já exista, não será alterado, pois será usado para entrar na rede já existente.
 
 - `.env.configs/static-nodes.json`
 
-  Esse arquivo contém a lista de validadores.
-
-Para alterar o número de validadores e boot nodes iniciais, é necessário definir as respectivas variáveis de ambiente, como no comando a seguir:
-```bash
-env VALIDATOR_COUNT=4 BOOT_COUNT=2 commands/blockchain-init
-```
-Também é necessário alterar o arquivo `docker-swarm.yml` de acordo.
+  Esse arquivo contém uma lista de enodes que devem ser conectados. Atualmente, é usado para facilitar conectividade entre validadores.
+  Os validadores criados serão adicionados à esse arquivo.
 
 ### Executar métodos RPC em um dos nodes
 
@@ -101,11 +114,7 @@ commands/node-rpc validator4 ibft_getValidatorsByBlockNumber '["485568"]'
 
 ### Subir os nodes
 
-Execute os seguintes comandos:
+Caso esteja utilizando no modo docker-compose, execute os seguintes comandos:
 ```bash
-set -a
-source .env.defaults
-set +a
-
-docker stack deploy -c docker-swarm.yml ${STACK_NAME}
+docker-compose up -d
 ```

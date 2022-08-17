@@ -80,6 +80,10 @@ scrape_configs:
         target_label: 'org'
         replacement: 'prodemge'
       - source_labels: ['instance']
+        regex: 'prodest-.*'
+        target_label: 'org'
+        replacement: 'prodest'
+      - source_labels: ['instance']
         regex: 'rnp_.*'
         target_label: 'org'
         replacement: 'rnp'

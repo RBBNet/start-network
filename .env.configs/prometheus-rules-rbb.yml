@@ -1,0 +1,31 @@
+groups:
+- name: rbb rules
+  rules:
+  # Alerts
+  ## rbb node offline
+  - alert: RBBNodeOffline
+    expr: up{network="rbb"} == 0
+    for: 30s
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance | stripPort }} is offline"
+      description: "{{ $labels.instance | stripPort }} is offline"
+  ## rbb node out of sync
+  - alert: RBBNodeOutOfSync
+    expr: node_block_height_distance_from_tip{network="rbb"} > 10
+    for: 30s
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance | stripPort }} is out of sync"
+      description: "{{ $labels.instance | stripPort }} is {{ $value }} blocks behind"
+  ## rbb node generation out of schedule
+  - alert: RBBBlockGenerationOutOfSchedule
+    expr: blockchain_block_generation_interval_distance_from_target:rate1m{network="rbb"} > 0.5
+    for: 30s
+    labels:
+      severity: page
+    annotations:
+      summary: "rbb block generation is too slow or too fast"
+      description: "rbb block generation is probably stale"

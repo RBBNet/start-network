@@ -18,6 +18,7 @@ function besu_get_publickey() {
 	chown -R 1000 "${NODE_CONFIG_PATH}"
 	if [[ -f "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}" ]]; then
 		cat "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}"
+		echo
 	else
 		docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" ${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export |
 			tail -n1 |
@@ -30,6 +31,7 @@ function besu_get_address() {
 	chown -R 1000 "${NODE_CONFIG_PATH}"
 	if [[ -f "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}" ]]; then
 		cat "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}"
+		echo
 	else
 		docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" ${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export-address |
 			tail -n1 |
@@ -57,4 +59,24 @@ function besu_encode_rlp() {
 function besu_genesis_ready() {
 	local GENESIS_PATH="${1}"
 	[[ -f "${GENESIS_PATH}" && $(jq '.extraData != null' "${GENESIS_PATH}") == "true" ]]
+}
+
+function besu_genesis_base() {
+	cat <<-EOF
+		{
+			"config": {
+				"chainId": 648629,
+				"constantinopleFixBlock": 0,
+				"berlinBlock": 0,
+				"contractSizeLimit": 2147483647,
+				"ibft2": { "blockperiodseconds": 2, "epochlength": 30000, "requesttimeoutseconds": 4 },
+				"discovery": { "bootnodes": [] }
+			},
+			"nonce": "0x0",
+			"gasLimit": "0x2FEFD800",
+			"difficulty": "0x1",
+			"mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+			"coinbase": "0x0000000000000000000000000000000000000000"
+		}
+	EOF
 }

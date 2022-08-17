@@ -1,0 +1,6 @@
+{
+    "environment": {
+        "isDockerSwarm": true
+    },
+    "prometheus": true
+}

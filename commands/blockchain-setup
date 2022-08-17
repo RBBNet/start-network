@@ -7,16 +7,10 @@ __DIR__="${__FILE__%/*}"
 
 set -e
 
+source .env
+
 source "${__DIR__}/common/besu.sh"
 source "${__DIR__}/common/json.sh"
-
-shopt -s nullglob
-
-for envfile in .env.defaults* .env.local*; do
-	source $envfile
-done
-
-shopt -u nullglob
 
 CONFIG_ROOT=${CONFIG_ROOT:-"${PWD}/.env.configs"}
 VOLUMES_ROOT=${VOLUMES_ROOT:-"${PWD}/volumes"}
@@ -31,6 +25,7 @@ ALL_NODES="${BOOT_NODES} ${VALIDATOR_NODES} ${WRITER_NODES}"
 
 STATIC_NODES_PATH="${CONFIG_ROOT}/static-nodes.json"
 GENESIS_PATH="${CONFIG_ROOT}/genesis.json"
+
 
 mkdir -p "${CONFIG_ROOT}" "${VOLUMES_ROOT}"
 
@@ -75,31 +70,13 @@ if ! besu_genesis_ready "${GENESIS_PATH}"; then
 
 	TIMESTAMP_HEX=$(printf '0x%X' $(date +%s))
 
-	if [[ -f "${GENESIS_PATH}" ]]; then
-		cat "${GENESIS_PATH}"
-	else
-		cat <<-EOF
-			{
-			  "config": {
-			    "chainId": 648629,
-			    "constantinopleFixBlock": 0,
-			    "berlinBlock": 0,
-			    "contractSizeLimit": 2147483647,
-			    "ibft2": { "blockperiodseconds": 2, "epochlength": 30000, "requesttimeoutseconds": 4 },
-			    "discovery": { "bootnodes": [] }
-			  },
-			  "nonce": "0x0",
-			  "gasLimit": "0x2FEFD800",
-			  "difficulty": "0x1",
-			  "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
-			  "coinbase": "0x0000000000000000000000000000000000000000"
-			}
-		EOF
-	fi |
-		jq ".extraData = \"${GENESIS_EXTRADATA}\"" |
-		jq ".timestamp = \"${TIMESTAMP_HEX}\"" |
-		jq ".config.discovery.bootnodes = (.config.discovery.bootnodes + ${BOOT_ENODES} | unique)" >"${GENESIS_PATH}"
+	if [[ ! -f "${GENESIS_PATH}" ]]; then
+		besu_genesis_base |
+			jq ".extraData = \"${GENESIS_EXTRADATA}\"" |
+			jq ".timestamp = \"${TIMESTAMP_HEX}\"" |
+			jq ".config.discovery.bootnodes = (.config.discovery.bootnodes + ${BOOT_ENODES} | unique)" >"${GENESIS_PATH}"
+	fi
 fi
 
 # render templates
-"${__DIR__}/template-render"
+"${__DIR__}/env-dump" | "${__DIR__}/template-render"

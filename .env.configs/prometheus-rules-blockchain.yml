@@ -1,0 +1,20 @@
+groups:
+- name: blockchain rules
+  rules:
+  # Records
+  ## blockchain tip
+  - record: blockchain_tip
+    expr: max(ethereum_blockchain_height) by (network)
+  ## node block height distance from tip
+  - record: node_block_height_distance_from_tip
+    expr: blockchain_tip - ignoring(job, instance, org) group_right ethereum_blockchain_height
+  ## blockchain block generation rate
+  - record: blockchain_block_generation_rate:rate1m
+    expr: max(rate(ethereum_best_known_block_number[1m])) by (network)
+#    expr: label_replace(max(rate(ethereum_best_known_block_number[1m])) by (job), "instance", "rbb$1", "job", "besu-nodes(.*)")
+  ## blockchain block generation interval
+  - record: blockchain_block_generation_interval:rate1m
+    expr: 1 / blockchain_block_generation_rate:rate1m
+  ## blockchain block generation interval distance from target
+  - record: blockchain_block_generation_interval_distance_from_target:rate1m
+    expr: abs(blockchain_block_generation_interval:rate1m - 2)

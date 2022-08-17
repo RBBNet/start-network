@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 
+__EXEC__="$(realpath -s ${BASH_SOURCE[0]})"
+__DIRE__="${__EXEC__%/*}"
+__FILE__="$(readlink -f ${BASH_SOURCE[0]})"
+__DIR__="${__FILE__%/*}"
+
+set -e
+
+source .env
+
 target="${1}"
 method="${2}"
 params="${@:3}"
 params="${params:-[]}"
 
-source .dtoolx/scripts/common.sh
 
 curl -skX POST \
 	--data "$(printf '{ "jsonrpc": "2.0", "method": "%s", "params": %s, "id": 1 }' "${method}" "${params}")" \
