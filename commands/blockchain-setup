@@ -35,7 +35,7 @@ for NODE_NAME in ${ALL_NODES}; do
 	NODE_DATA_PATH="${VOLUMES_ROOT}/${NODE_NAME}"
 
 	mkdir -p "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
-	chown 1000.1000 "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
+	chmod a+w "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
 
 	if [[ -f "${NODE_CONFIG_PATH}/key" ]]; then
 		continue

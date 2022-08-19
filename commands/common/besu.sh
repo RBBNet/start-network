@@ -5,7 +5,6 @@ BESU_NODE_ADDRESS_FILENAME="node.address"
 function besu_generate_keypair() {
 	local NODE_CONFIG_PATH="${1}"
 
-	chown -R 1000 "${NODE_CONFIG_PATH}"
 	cat <<-EOF | docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" --entrypoint=/bin/bash ${IMAGE_BESU:-hyperledger/besu}
 		besu public-key export --to=/var/lib/besu/${BESU_PUBLIC_KEY_FILENAME}
 		besu public-key export-address --to=/var/lib/besu/${BESU_NODE_ADDRESS_FILENAME}
@@ -15,7 +14,6 @@ function besu_generate_keypair() {
 
 function besu_get_publickey() {
 	local NODE_CONFIG_PATH="${1}"
-	chown -R 1000 "${NODE_CONFIG_PATH}"
 	if [[ -f "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}" ]]; then
 		cat "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}"
 		echo
@@ -28,7 +26,6 @@ function besu_get_publickey() {
 
 function besu_get_address() {
 	local NODE_CONFIG_PATH="${1}"
-	chown -R 1000 "${NODE_CONFIG_PATH}"
 	if [[ -f "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}" ]]; then
 		cat "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}"
 		echo
