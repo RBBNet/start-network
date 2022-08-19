@@ -25,7 +25,7 @@ for NODE_CONFIG_PATH in "${CONFIG_ROOT}/nodes/"*; do
 	printf '%s;%s;%s\n' "${NODE_NAME}" "${NODE_PUBKEY}" "${NODE_ADDRESS}"
 done |
 	jq --raw-input 'split(";") | { name: .[0], publicKey: .[1], address: .[2] }' |
-	jq --slurp '{ nodes: . }' |
+	jq --slurp '{ nodes: ., traefik: true }' |
 	jq --slurp '((.[].nodes // []) |= (map({key:.name, value:.}) | from_entries))
 		| reduce .[] as $item ({}; . * $item)
 		| (.nodes |= map(.))' - infra*.json

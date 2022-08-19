@@ -1,6 +1,7 @@
 {
-    "environment": {
-        "isDockerSwarm": true
-    },
-    "prometheus": true
+  "organization": "bndes",
+  "environment": {
+    "isDockerSwarm": true
+  },
+  "prometheus": true
 }

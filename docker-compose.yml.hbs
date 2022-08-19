@@ -30,8 +30,15 @@ services:
       BESU_RPC_HTTP_API: "ADMIN,ETH,TXPOOL,NET,IBFT,WEB3,DEBUG,TRACE"
       BESU_RPC_HTTP_CORS_ORIGINS: "*"
       BESU_HOST_ALLOWLIST: "*"
+      {{#if ../metrics.push}}
+      BESU_METRICS_PUSH_ENABLED: "true"
+      BESU_METRICS_PUSH_HOST: "{{../metrics.push.host}}"
+      BESU_METRICS_PUSH_PORT: "{{../metrics.push.port}}"
+      BESU_METRICS_PUSH_PROMETHEUS_JOB: "{{../organization}}-{{name}}"
+      {{else}}
       BESU_METRICS_ENABLED: "true"
       BESU_METRICS_HOST: "0.0.0.0"
+      {{/if}}
     {{#if ../environment.isDockerSwarm}}
     configs:
     - source: log-config
@@ -72,6 +79,7 @@ services:
 
 {{/each}}
 
+{{#if traefik}}
   traefik:
     image: ${IMAGE_TRAEFIK}
     logging: *logging-default
@@ -88,9 +96,9 @@ services:
       - "--providers.docker=true"
       {{#if environment.isDockerSwarm}}
       - "--providers.docker.swarmMode=true"
+      - "--providers.docker.constraints=Label(`com.docker.stack.namespace`,`${STACK_NAME}`)"
       {{/if}}
       - "--providers.docker.exposedByDefault=false"
-      - "--providers.docker.constraints=Label(`com.docker.stack.namespace`,`${STACK_NAME}`)"
       - "--entryPoints.web.address=:80"
       - "--metrics.prometheus=true"
       - "--metrics.prometheus.addRoutersLabels=true"
@@ -101,6 +109,7 @@ services:
       - "${APP_TRAEFIK_PORT}:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+{{/if}}
 
 {{#if prometheus}}
   prometheus:
