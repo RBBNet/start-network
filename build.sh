@@ -58,8 +58,6 @@ scrape_configs:
         {{/each}}
 EOF
 
-chown -R 1000.1000 ${BUILD_DIR}
-
 tar czf rbb-setup-${VERSION}.tgz -C ${BUILD_DIR} .
 
 # rm -rf ${BUILD_DIR}
