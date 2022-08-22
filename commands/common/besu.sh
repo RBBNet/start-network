@@ -5,11 +5,16 @@ BESU_NODE_ADDRESS_FILENAME="node.address"
 function besu_generate_keypair() {
 	local NODE_CONFIG_PATH="${1}"
 
-	cat <<-EOF | docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" --entrypoint=/bin/bash ${IMAGE_BESU:-hyperledger/besu}
-		besu public-key export --to=/var/lib/besu/${BESU_PUBLIC_KEY_FILENAME}
-		besu public-key export-address --to=/var/lib/besu/${BESU_NODE_ADDRESS_FILENAME}
-		mv /opt/besu/key /var/lib/besu/
-	EOF
+	docker run --rm -i \
+		-v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" \
+		--entrypoint=/bin/bash \
+		${IMAGE_BESU:-hyperledger/besu} < <(
+			cat <<-EOF
+			besu public-key export --to=/var/lib/besu/${BESU_PUBLIC_KEY_FILENAME}
+			besu public-key export-address --to=/var/lib/besu/${BESU_NODE_ADDRESS_FILENAME}
+			mv /opt/besu/key /var/lib/besu/
+			EOF
+		)
 }
 
 function besu_get_publickey() {
@@ -18,9 +23,11 @@ function besu_get_publickey() {
 		cat "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}"
 		echo
 	else
-		docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" ${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export |
-			tail -n1 |
-			tee "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}"
+		docker run --rm -i \
+			-v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" \
+			${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export |
+				tail -n1 |
+				tee "${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}"
 	fi
 }
 
@@ -30,9 +37,11 @@ function besu_get_address() {
 		cat "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}"
 		echo
 	else
-		docker run --rm -i -v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" ${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export-address |
-			tail -n1 |
-			tee "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}"
+		docker run --rm -i \
+			-v "$(realpath ${NODE_CONFIG_PATH}):/var/lib/besu/" \
+			${IMAGE_BESU:-hyperledger/besu} --data-path=/var/lib/besu/ public-key export-address |
+				tail -n1 |
+				tee "${NODE_CONFIG_PATH}/${BESU_NODE_ADDRESS_FILENAME}"
 	fi
 }
 
