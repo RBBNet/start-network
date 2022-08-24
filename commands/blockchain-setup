@@ -63,19 +63,23 @@ if ! besu_genesis_ready "${GENESIS_PATH}"; then
 		besu_get_address "${NODE_CONFIG_PATH}"
 	done | json_array | besu_encode_rlp)
 
+	TIMESTAMP_HEX=$(printf '0x%X' $(date +%s))
+
+	besu_genesis_base |
+		jq ".extraData = \"${GENESIS_EXTRADATA}\"" |
+		jq ".timestamp = \"${TIMESTAMP_HEX}\"" > "${GENESIS_PATH}"
+fi
+
+# expand boot nodes list
+if [[ -n "${BOOT_NODES+x}" ]]; then
 	BOOT_ENODES=$(for NODE_NAME in ${BOOT_NODES}; do
 		NODE_CONFIG_PATH="${CONFIG_ROOT}/nodes/${NODE_NAME}"
 		besu_get_enode "${NODE_CONFIG_PATH}"
 	done | json_array)
 
-	TIMESTAMP_HEX=$(printf '0x%X' $(date +%s))
-
-	if [[ ! -f "${GENESIS_PATH}" ]]; then
-		besu_genesis_base |
-			jq ".extraData = \"${GENESIS_EXTRADATA}\"" |
-			jq ".timestamp = \"${TIMESTAMP_HEX}\"" |
-			jq ".config.discovery.bootnodes = (.config.discovery.bootnodes + ${BOOT_ENODES} | unique)" >"${GENESIS_PATH}"
-	fi
+	jq '.config.discovery.bootnodes = (.config.discovery.bootnodes + '"${BOOT_ENODES}"' | unique)' "${GENESIS_PATH}" > "${GENESIS_PATH}.new"
+	cat "${GENESIS_PATH}.new" > "${GENESIS_PATH}"
+	rm -f "${GENESIS_PATH}.new"
 fi
 
 # render templates
