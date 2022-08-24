@@ -76,12 +76,12 @@ Esse comando inicializa/conecta em uma blockchain, criando os seguintes arquivos
 
   Endereço do respectivo node.
 
-- `.env.configs/genesis.json`
+- `${CONFIG_ROOT}/genesis.json`
 
   Caso não exista, será gerado automaticamente, inserindo as chaves públicas dos validadores no campo `extraData`, e os endereços dos bootnodes no campo `config.discovery.bootnodes`.
   Caso já exista, não será alterado, pois será usado para entrar na rede já existente.
 
-- `.env.configs/static-nodes.json`
+- `${CONFIG_ROOT}/static-nodes.json`
 
   Esse arquivo contém uma lista de enodes que devem ser conectados. Atualmente, é usado para facilitar conectividade entre validadores.
   Os validadores criados serão adicionados à esse arquivo.
