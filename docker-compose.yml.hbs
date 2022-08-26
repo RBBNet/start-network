@@ -66,6 +66,7 @@ services:
     volumes:
       - ${VOLUMES_ROOT}/{{name}}/:/var/lib/besu/
       {{#unless ../environment.isDockerSwarm}}
+      - ${CONFIG_ROOT}/nodes/{{name}}/key:/var/lib/besu/key
       - ${CONFIG_ROOT}/genesis.json:/var/lib/besu/genesis.json
       - ${CONFIG_ROOT}/static-nodes.json:/var/lib/besu/static-nodes.json
       - ${CONFIG_ROOT}/log.xml:/var/lib/besu/log.xml
@@ -155,23 +156,23 @@ services:
 {{#if environment.isDockerSwarm}}
 configs:
   genesis-config:
-      file: .env.configs/genesis.json
+      file: ${CONFIG_ROOT}/genesis.json
   static-nodes-config:
-      file: .env.configs/static-nodes.json
+      file: ${CONFIG_ROOT}/static-nodes.json
   log-config:
-      file: .env.configs/log.xml
+      file: ${CONFIG_ROOT}/log.xml
   {{#each nodes}}
   node-{{name}}-privkey-config:
-    file: .env.configs/nodes/{{name}}/key
+    file: ${CONFIG_ROOT}/nodes/{{name}}/key
   {{/each}}
   {{#if prometheus}}
   prometheus-config:
-      file: .env.configs/prometheus.yml
+      file: ${CONFIG_ROOT}/prometheus.yml
   prometheus-rules-blockchain-config:
-      file: .env.configs/prometheus-rules-blockchain.yml
+      file: ${CONFIG_ROOT}/prometheus-rules-blockchain.yml
   prometheus-rules-rbb-config:
-      file: .env.configs/prometheus-rules-rbb.yml
+      file: ${CONFIG_ROOT}/prometheus-rules-rbb.yml
   prometheus-rules-rbb-lab-config:
-      file: .env.configs/prometheus-rules-rbb-lab.yml
+      file: ${CONFIG_ROOT}/prometheus-rules-rbb-lab.yml
   {{/if}}
 {{/if}}
