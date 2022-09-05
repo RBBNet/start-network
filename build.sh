@@ -3,7 +3,7 @@
 __FILE__="$(readlink -f ${BASH_SOURCE[0]})"
 __DIR__="${__FILE__%/*}"
 
-VERSION=${VERSION:-$(git describe --always --dirty)}
+VERSION=${VERSION:-$(git describe --tags --always --dirty)}
 
 BUILD_DIR=$(mktemp -d)
 
