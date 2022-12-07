@@ -1,0 +1,21 @@
+{
+  "organization": "bndes",
+  "environment": {
+    "isDockerSwarm": true
+  },
+  "prometheus": true,
+  "nodes": [
+    {
+      "name": "boot1",
+      "config": {
+        "p2p": {
+          "port": 60606
+        }
+      },
+      "ports": [
+        "60606:60606/tcp",
+        "60606:60606/udp"
+      ]
+    }
+  ]
+}

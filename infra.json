@@ -1,7 +1,0 @@
-{
-  "organization": "bndes",
-  "environment": {
-    "isDockerSwarm": true
-  },
-  "prometheus": true
-}

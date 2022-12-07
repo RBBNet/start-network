@@ -26,6 +26,13 @@ services:
       BESU_GENESIS_FILE: "/var/lib/besu/genesis.json"
       BESU_STATIC_NODES_FILE: "/var/lib/besu/static-nodes.json"
       BESU_DISCOVERY_ENABLED: "true"
+      BESU_MIN_GAS_PRICE: "0"
+      {{#if config.p2p.host}}
+      BESU_P2P_HOST: "{{config.p2p.host}}"
+      {{/if}}
+      {{#if config.p2p.port}}
+      BESU_P2P_PORT: "{{config.p2p.port}}"
+      {{/if}}
       BESU_RPC_HTTP_ENABLED: "true"
       BESU_RPC_HTTP_API: "ADMIN,ETH,TXPOOL,NET,IBFT,WEB3,DEBUG,TRACE"
       BESU_RPC_HTTP_CORS_ORIGINS: "*"
