@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+__EXEC__="$(realpath -s ${BASH_SOURCE[0]})"
+__DIRE__="${__EXEC__%/*}"
+__FILE__="$(readlink -f ${BASH_SOURCE[0]})"
+__DIR__="${__FILE__%/*}"
+
+${__DIRE__}/node_modules/.bin/hbs ${*} 2>&1 | sed -e 's#.result from# from#'
+
+while [[ $# -gt 0 ]]; do
+        case $1 in
+        --output|-o)
+                OUTPUT="$2"
+                shift # consume argument
+                shift # consume value
+                ;;
+        *)
+                shift
+                ;;
+        esac
+done
+
+[[ -n "${OUTPUT}" ]] && find "${OUTPUT}" -maxdepth 1 -name '*.result' -exec sh -c 'f="{}"; mv "$f" "${f%.result}"' \;
