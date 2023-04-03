@@ -15,7 +15,7 @@ function template_render() {
 	cat <<-'EOF' >"${ENTRYPOINT_PATH}"
 	#!/usr/bin/env bash
 
-	./node_modules/.bin/hbs ${*} 2>&1 | sed -e 's#.result from# from#'
+	./node_modules/.bin/hbs -e result ${*} 2>&1 | sed -e 's#.result from# from#'
 
 	while [[ $# -gt 0 ]]; do
 		case $1 in
@@ -67,7 +67,7 @@ function template_render() {
 		-v "${SOURCE_PATH}":"${SOURCE_PATH}" \
 		-v "${TARGET_PATH}":"${TARGET_PATH}" \
 		--user "$(id -u):$(id -g)" \
-		hbs -e result -D /data.json -o "${TARGET_PATH}" -- "${SOURCE_PATH}"/*.hbs
+		hbs -D /data.json -o "${TARGET_PATH}" -- "${SOURCE_PATH}"/*.hbs
 
 	rm -rf "${TMPDIR}"
 }
