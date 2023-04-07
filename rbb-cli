@@ -3,4 +3,5 @@
 RBB_VERSION=${RBB_VERSION:-latest}
 RBB_IMAGE=${RBB_IMAGE:-rbb:${RBB_VERSION}}
 
-docker run --rm -it -v $PWD:$PWD --workdir $PWD rbb ${@}
+docker buildx build --tag=rbb --network=host .
+docker run --rm -i -e INFRA_CONFIG_PATH -v $PWD:$PWD --workdir $PWD rbb ${@}

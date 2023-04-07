@@ -1,0 +1,284 @@
+#!/usr/bin/env bash
+
+__EXEC__="$(realpath -s ${BASH_SOURCE[0]})"
+__DIRE__="${__EXEC__%/*}"
+__FILE__="$(readlink -f ${BASH_SOURCE[0]})"
+__DIR__="${__FILE__%/*}"
+
+set -e
+
+source "${__DIR__}/lib/besu.sh"
+
+INFRA_CONFIG_PATH=${INFRA_CONFIG_PATH:-"${PWD}/infra.json"}
+
+CONFIG_ROOT=${CONFIG_ROOT:-"${PWD}/.env.configs"}
+NODES_CONFIG_ROOT=${NODES_CONFIG_ROOT:-"${CONFIG_ROOT}/nodes"}
+VOLUMES_ROOT=${VOLUMES_ROOT:-"${PWD}/volumes"}
+TEMPLATES_ROOT=${TEMPLATES_ROOT:-"${PWD}/templates"}
+
+GENESIS_PATH=${GENESIS_PATH:-"${CONFIG_ROOT}/genesis.json"}
+GENESIS_TEMPLATE_PATH=${GENESIS_TEMPLATE_PATH:-"${TEMPLATES_ROOT}/genesis.json.hbs"}
+
+#####
+
+CLI_NAME=${__FILE__##*/}
+CLI_DESCRIPTION="RBB admin tools"
+
+ERROR_CLI=40
+ERROR_NOTIMPLEMENTED=50
+
+function error() {
+	local message="${1}"
+	printf "error: %s\n" "${message}" >&2
+}
+
+function error_cli() {
+	error "${1}"
+	cli_display_usage
+	exit $ERROR_CLI
+}
+
+function error_not_implemented() {
+	error "${1} not implemented"
+	exit $ERROR_NOTIMPLEMENTED
+}
+
+
+function cli_display_usage() {
+	cat <<-EOF
+	${CLI_DESCRIPTION}
+
+	Usage: ${CLI_NAME} [OPTIONS] [COMMAND]
+
+	Options:
+	  -V, --version   # informações de versão
+	  -v, --verbose   # liga output verboso
+	  -h, --help      # mostra ajuda
+
+	Commands:
+	  config
+	    dump                # mostra configurações
+	    render-templates    # mostra configurações
+	  node
+	    list                # lista informações dos nodes
+	    create              # inicializa nodes
+	      NAME,...
+	    url                 # mostra url de um node
+	      NAME
+	  genesis
+	    create              # inicializa genesis.json
+	      --validators NAME,...
+	      --boots NAME:IP:PORT,...
+	EOF
+}
+
+# read global flags and commands
+function cli() {
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+		--verbose|-v)
+			CLI_VERBOSE=1
+			shift
+			;;
+		--version|-V)
+			cli_display_version
+			exit 0
+			;;
+		--help|-h)
+			cli_display_usage
+			exit 0
+			;;
+		config)
+			cli_config "${@:2}"
+			return
+			;;
+		node)
+			cli_node "${@:2}"
+			return
+			;;
+		genesis)
+			cli_genesis "${@:2}"
+			return
+			;;
+		*)
+			error_cli "unexpected option/command: ${1}"
+			;;
+		esac
+	done
+
+	error_cli "must specify command"
+
+}
+
+function cli_config() {
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+		dump)
+			cli_config_dump "${@:2}"
+			return
+			;;
+		render-templates)
+			cli_config_render_templates "${@:2}"
+			return
+			;;
+		*)
+			error_cli "unexpected option/subcommand for config: ${1}"
+			;;
+		esac
+	done
+
+	error_cli "must specify subcommand for config"
+}
+
+function cli_node() {
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+		create)
+			cli_node_create "${@:2}"
+			return
+			;;
+		list)
+			cli_node_list "${@:2}"
+			return
+			;;
+		url)
+			cli_node_url "${@:2}"
+			return
+			;;
+		*)
+			error_cli "unexpected option/subcommand for node: ${1}"
+			;;
+		esac
+	done
+
+	error_cli "must specify subcommand for node"
+}
+
+function cli_genesis() {
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+		create)
+			cli_genesis_create "${@:2}"
+			return
+			;;
+		*)
+			error_cli "unexpected option/subcommand for genesis: ${1}"
+			;;
+		esac
+	done
+
+	error_cli "must specify subcommand for genesis"
+}
+
+function cli_config_dump() {
+	for NODE_CONFIG_PATH in ${NODES_CONFIG_ROOT}/*; do
+		NODE_NAME=$(basename "${NODE_CONFIG_PATH}")
+		NODE_ID=$(besu_get_id ${NODE_CONFIG_PATH})
+		NODE_PUBLICKEY=$(besu_get_publickey ${NODE_CONFIG_PATH})
+		# NODE_ENODE=$(besu_get_enode ${NODE_CONFIG_PATH})
+
+		printf '%s;%s;%s\n' ${NODE_NAME} ${NODE_ID} ${NODE_PUBLICKEY} #${NODE_ENODE}
+	done | 
+		jq --raw-input 'split(";") | { name: .[0], id: .[1], publicKey: .[2] }' |
+		jq --slurp '{ nodes: . }' |
+		jq --slurp '(
+			(.[].nodes // []) |= (map({key:.name, value:.}) | from_entries) 
+			| reduce .[] as $item ({}; . * $item) 
+		)' - <([[ -f "${INFRA_CONFIG_PATH}" ]] && < "${INFRA_CONFIG_PATH}" || echo "{}")
+
+	# jq --slurp '(
+	# 	(.[].nodes // []) |= (map({key:.name, value:.}) | from_entries) 
+	# 	| reduce .[] as $item ({}; . * $item) 
+	# 	| (.nodes as $nodesByName | .nodes |= map(.) | .nodesByName = $nodesByName)
+	# )' - <([[ -f "${INFRA_CONFIG_PATH}" ]] && < "${INFRA_CONFIG_PATH}" || echo "{}")
+}
+
+function cli_config_set() {
+	local KEY="${1}"
+	local VALUE="${2}"
+}
+
+function cli_config_render_templates() {
+	find -L "$PWD" "${CONFIG_ROOT}" "${VOLUMES_ROOT}" ! -path '*~/*' ! -path '*/.git/*' -name '*.hbs' -printf '%h\n' | 
+		sort -u | 
+		while read TEMPLATE_DIR; do
+			rbb config dump | hbs --stdin --stdout --helper ./templates/helpers.js -- ${GENESIS_TEMPLATE_PATH} > ${GENESIS_PATH}
+		done
+}
+
+function cli_node_create() {
+	local NAMES="${@}"
+
+	for NODE_NAME in ${NAMES//,/ }; do
+		NODE_CONFIG_PATH="${NODES_CONFIG_ROOT}/${NODE_NAME}"
+		NODE_DATA_PATH="${VOLUMES_ROOT}/${NODE_NAME}"
+
+		if [[ -f "${NODE_CONFIG_PATH}/${BESU_PRIVATE_KEY_FILENAME}" ]]; then
+			continue
+		fi
+
+		mkdir -p "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
+		chown 1000 "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
+
+		besu_generate_keypair "${NODE_CONFIG_PATH}"
+	done
+}
+
+function cli_node_list() {
+	error_not_implemented "node list"
+}
+
+function cli_node_url() {
+	error_not_implemented "node url"
+}
+
+function cli_genesis_create() {
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+		--validator|--validators|-v)
+			local NODES=${2}
+			shift 2
+			OPTS_VALIDATOR_NODES="${OPTS_VALIDATOR_NODES:+${OPTS_VALIDATOR_NODES},}${NODES}"
+			;;
+		--boot|--boots|-b)
+			local NODES=${2}
+			shift 2
+			OPTS_BOOT_NODES="${OPTS_BOOT_NODES:+${OPTS_BOOT_NODES},}${NODES}"
+			;;
+		--force|-f)
+			local FORCE=1
+			shift
+			;;
+		*)
+			error_cli "unexpected option/subcommand for genesis create: ${1}"
+			;;
+		esac
+	done
+
+	VALIDATOR_NODES="${OPTS_VALIDATOR_NODES:-${VALIDATOR_NODES}}"
+	VALIDATOR_NODES="${VALIDATOR_NODES//,/ }"
+	BOOT_NODES="${OPTS_BOOT_NODES:-${BOOT_NODES}}"
+	BOOT_NODES="${BOOT_NODES//,/ }"
+
+	[[ -n "${VALIDATOR_NODES}" ]] || error_cli "must specify --validators for genesis create"
+
+	JQ_FILTERS=$(for name in $VALIDATOR_NODES; do
+		printf '.nodes.%s.isValidator=true|' "${name}"
+	done)
+	JQ_FILTERS+=$(for spec in $BOOT_NODES; do
+		local name="${spec%%:*}"
+		local address="${spec#*:}"
+		printf '.nodes.%s|=(.address="%s"|.isBoot=true)|' "${name}" "${address}"
+	done)
+	JQ_FILTERS+="."
+
+	if [[ -n "${FORCE}" ]] || ! besu_genesis_ready "${GENESIS_PATH}"; then
+		rbb config dump |
+			jq "${JQ_FILTERS}" |
+			hbs --stdin --stdout --helper "${TEMPLATES_ROOT}/"*.js -- "${GENESIS_TEMPLATE_PATH}" > "${GENESIS_PATH}"
+	fi
+}
+
+
+
+cli ${@}

@@ -1,0 +1,23 @@
+{
+  "config": {
+    "chainId": 648629,
+    "constantinopleFixBlock": 0,
+    "berlinBlock": 0,
+    "contractSizeLimit": 2147483647,
+    "qbft": {
+      "blockperiodseconds": 10,
+      "epochlength": 30000,
+      "requesttimeoutseconds": 20
+    },
+    "discovery": {
+      "bootnodes": {{json (enode (where nodes isBoot=true))}}
+    }
+  },
+  "nonce": "0x0",
+  "gasLimit": "0x2FEFD800",
+  "difficulty": "0x1",
+  "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "extraData": "{{rlpEncode (pluck "id" (where nodes isValidator=true)) type="QBFT"}}",
+  "timestamp": "{{hex (fallback (env "GENESIS_TIMESTAMP") (now))}}"
+}
