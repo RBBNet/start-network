@@ -218,7 +218,6 @@ function cli_node_create() {
 		fi
 
 		mkdir -p "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
-		chown 1000 "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
 
 		besu_generate_keypair "${NODE_CONFIG_PATH}"
 	done
