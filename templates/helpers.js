@@ -2,6 +2,10 @@ const { execSync } = require("child_process");
 
 function besuRlpEncode(type, validators) {
   return execSync(`besu rlp encode --type=${type}_EXTRA_DATA`, {
+    env: {
+      ...process.env,
+      LOG4J_CONFIGURATION_FILE: "/var/lib/besu/logging-off.xml",
+    },
     input: JSON.stringify(validators),
   }).toString().split("\n").shift();
 }

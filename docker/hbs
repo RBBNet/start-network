@@ -7,12 +7,15 @@ __DIR__="${__FILE__%/*}"
 
 ${__DIRE__}/node_modules/.bin/hbs --extension result "${@}" 2>&1 | sed -e 's#.result from# from#'
 
-while [[ $# -gt 0 ]]; do
+while [[ "${#}" -gt 0 ]]; do
 	case $1 in
 	--output|-o)
 		OUTPUT="$2"
 		shift # consume argument
 		shift # consume value
+		;;
+	--)
+		break
 		;;
 	*)
 		shift
@@ -20,4 +23,6 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-[[ -n "${OUTPUT}" ]] && find "${OUTPUT}" -maxdepth 1 -name '*.result' -exec sh -c 'f="{}"; mv "$f" "${f%.result}"' \;
+if [[ -n "${OUTPUT}" ]]; then
+	find "${OUTPUT}" -maxdepth 1 -name '*.result' -exec sh -c 'f="{}"; mv "$f" "${f%.result}"' \;
+fi

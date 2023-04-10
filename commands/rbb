@@ -26,8 +26,16 @@ GENESIS_TEMPLATE_PATH=${GENESIS_TEMPLATE_PATH:-"${TEMPLATES_ROOT}/genesis.json.h
 CLI_NAME=${__FILE__##*/}
 CLI_DESCRIPTION="RBB admin tools"
 
+OK=0
 ERROR_CLI=40
+ERROR_REFUSED=43
 ERROR_NOTIMPLEMENTED=50
+
+function info() {
+	local message="${1}"
+	[[ "${CLI_VERBOSE}" -ge 1 ]] || return
+	printf "info: %s\n" "${message}"
+}
 
 function error() {
 	local message="${1}"
@@ -40,11 +48,15 @@ function error_cli() {
 	exit $ERROR_CLI
 }
 
+function error_refused() {
+	error "${1}"
+	exit $ERROR_REFUSED
+}
+
 function error_not_implemented() {
 	error "${1} not implemented"
 	exit $ERROR_NOTIMPLEMENTED
 }
-
 
 function cli_display_usage() {
 	cat <<-EOF
@@ -53,20 +65,16 @@ function cli_display_usage() {
 	Usage: ${CLI_NAME} [OPTIONS] [COMMAND]
 
 	Options:
-	  -V, --version   # informações de versão
 	  -v, --verbose   # liga output verboso
 	  -h, --help      # mostra ajuda
 
 	Commands:
 	  config
 	    dump                # mostra configurações
-	    render-templates    # mostra configurações
+	    render-templates    # renderiza templates .hbs
 	  node
-	    list                # lista informações dos nodes
 	    create              # inicializa nodes
 	      NAME,...
-	    url                 # mostra url de um node
-	      NAME
 	  genesis
 	    create              # inicializa genesis.json
 	      --validators NAME,...
@@ -109,7 +117,10 @@ function cli() {
 	done
 
 	error_cli "must specify command"
+}
 
+function cli_display_version() {
+	error_not_implemented "--version"
 }
 
 function cli_config() {
@@ -173,12 +184,14 @@ function cli_genesis() {
 }
 
 function cli_config_dump() {
+	local _SHOPT="$(shopt -p nullglob)"
+	shopt -s nullglob
+
 	for NODE_CONFIG_PATH in ${NODES_CONFIG_ROOT}/*; do
 		NODE_NAME=$(basename "${NODE_CONFIG_PATH}")
 		NODE_ID=$(besu_get_id ${NODE_CONFIG_PATH})
 		NODE_PUBLICKEY=$(besu_get_publickey ${NODE_CONFIG_PATH})
 		# NODE_ENODE=$(besu_get_enode ${NODE_CONFIG_PATH})
-
 		printf '%s;%s;%s\n' ${NODE_NAME} ${NODE_ID} ${NODE_PUBLICKEY} #${NODE_ENODE}
 	done | 
 		jq --raw-input 'split(";") | { name: .[0], id: .[1], publicKey: .[2] }' |
@@ -186,18 +199,9 @@ function cli_config_dump() {
 		jq --slurp '(
 			(.[].nodes // []) |= (map({key:.name, value:.}) | from_entries) 
 			| reduce .[] as $item ({}; . * $item) 
-		)' - <([[ -f "${INFRA_CONFIG_PATH}" ]] && < "${INFRA_CONFIG_PATH}" || echo "{}")
+		)' - $([[ -f "${INFRA_CONFIG_PATH}" ]] && echo "${INFRA_CONFIG_PATH}")
 
-	# jq --slurp '(
-	# 	(.[].nodes // []) |= (map({key:.name, value:.}) | from_entries) 
-	# 	| reduce .[] as $item ({}; . * $item) 
-	# 	| (.nodes as $nodesByName | .nodes |= map(.) | .nodesByName = $nodesByName)
-	# )' - <([[ -f "${INFRA_CONFIG_PATH}" ]] && < "${INFRA_CONFIG_PATH}" || echo "{}")
-}
-
-function cli_config_set() {
-	local KEY="${1}"
-	local VALUE="${2}"
+	eval "${_SHOPT}"
 }
 
 function cli_config_render_templates() {
@@ -263,15 +267,15 @@ function cli_genesis_create() {
 	BOOT_NODES="${OPTS_BOOT_NODES:-${BOOT_NODES}}"
 	BOOT_NODES="${BOOT_NODES//,/ }"
 
-	[[ -n "${VALIDATOR_NODES}" ]] || error_cli "must specify --validators for genesis create"
+	#[[ -n "${VALIDATOR_NODES}" ]] || error_cli "must specify --validators for genesis create"
 
 	JQ_FILTERS=$(for name in $VALIDATOR_NODES; do
-		printf '.nodes.%s.isValidator=true|' "${name}"
+		printf '.nodes["%s"].isValidator=true|' "${name}"
 	done)
 	JQ_FILTERS+=$(for spec in $BOOT_NODES; do
 		local name="${spec%%:*}"
 		local address="${spec#*:}"
-		printf '.nodes.%s|=(.address="%s"|.isBoot=true)|' "${name}" "${address}"
+		printf '.nodes["%s"]|=(.address="%s"|.isBoot=true)|' "${name}" "${address}"
 	done)
 	JQ_FILTERS+="."
 
@@ -279,9 +283,12 @@ function cli_genesis_create() {
 		rbb config dump |
 			jq "${JQ_FILTERS}" |
 			hbs --stdin --stdout --helper "${TEMPLATES_ROOT}/"*.js -- "${GENESIS_TEMPLATE_PATH}" > "${GENESIS_PATH}"
+
+		info "${GENESIS_PATH} written"
+	else
+		error_refused "${GENESIS_PATH} already exists. Use --force to overwrite."
 	fi
 }
-
 
 
 cli ${@}
