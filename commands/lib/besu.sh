@@ -42,7 +42,7 @@ function besu_get_enode() {
 }
 
 function besu_encode_rlp() {
-	local TYPE=${1:-"IBFT_EXTRA_DATA"}
+	local TYPE=${1:-"QBFT_EXTRA_DATA"}
 	env LOG4J_CONFIGURATION_FILE="${LOG4J_CONFIGURATION_FILE}" besu rlp encode --type=${TYPE}
 }
 
