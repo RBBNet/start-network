@@ -7,9 +7,8 @@ LOG4J_CONFIGURATION_FILE="/var/lib/besu/logging-off.xml"
 function besu_generate_keypair() {
 	local NODE_CONFIG_PATH="${1}"
 
-	besu public-key export --to=${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}
-	besu public-key export-address --to=${NODE_CONFIG_PATH}/${BESU_NODE_ID_FILENAME}
-	mv /opt/besu/key ${NODE_CONFIG_PATH}/
+	besu --data-path=${NODE_CONFIG_PATH} public-key export --to=${NODE_CONFIG_PATH}/${BESU_PUBLIC_KEY_FILENAME}
+	besu --data-path=${NODE_CONFIG_PATH} public-key export-address --to=${NODE_CONFIG_PATH}/${BESU_NODE_ID_FILENAME}
 }
 
 function besu_get_publickey() {

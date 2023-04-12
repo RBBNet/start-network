@@ -11,8 +11,6 @@ source "${__DIR__}/lib/besu.sh"
 
 INFRA_CONFIG_PATH=${INFRA_CONFIG_PATH:-"${PWD}/infra.json"}
 
-BESU_GROUP=${BESU_GROUP:-1000}
-
 CONFIG_ROOT=${CONFIG_ROOT:-"${PWD}/.env.configs"}
 NODES_CONFIG_ROOT=${NODES_CONFIG_ROOT:-"${CONFIG_ROOT}/nodes"}
 VOLUMES_ROOT=${VOLUMES_ROOT:-"${PWD}/volumes"}
@@ -224,8 +222,6 @@ function cli_node_create() {
 		fi
 
 		mkdir -p "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
-		chgrp ${BESU_GROUP} "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
-		chmod g+w "${NODE_CONFIG_PATH}" "${NODE_DATA_PATH}"
 
 		besu_generate_keypair "${NODE_CONFIG_PATH}"
 	done
