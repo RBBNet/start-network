@@ -45,6 +45,11 @@ module.exports = {
       );
     });
 
+    Handlebars.registerHelper('tcp', (address) => {
+      const { hostname, port } = new URL(`http://${address}`);
+      return { host: hostname, port };
+    });
+
     Handlebars.registerHelper("pluck", function(key, items) {
       return items.map((item) => item[key]);
     });
