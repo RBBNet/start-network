@@ -29,8 +29,10 @@ services:
       BESU_DISCOVERY_ENABLED: "true"
       BESU_MIN_GAS_PRICE: "0"
       {{#if address}}
-      BESU_P2P_HOST: "{{lookup (tcp address) 'host'}}"
-      BESU_P2P_PORT: "{{lookup (tcp address) 'port'}}"
+      {{#with (tcp address)}}
+      BESU_P2P_HOST: "{{host}}"
+      BESU_P2P_PORT: "{{port}}"
+      {{/with}}
       {{/if}}
       BESU_RPC_HTTP_ENABLED: "true"
       BESU_RPC_HTTP_API: "ADMIN,ETH,TXPOOL,NET,IBFT,WEB3,DEBUG,TRACE,PERM"
@@ -38,6 +40,7 @@ services:
       BESU_HOST_ALLOWLIST: "*"
       BESU_METRICS_ENABLED: "true"
       BESU_METRICS_HOST: "0.0.0.0"
+    user: "{{uid}}"
     command: >-
       --Xdns-enabled=true
       --Xdns-update-enabled=true
@@ -48,7 +51,9 @@ services:
       - ${PWD}/.env.configs/log.xml:/var/lib/besu/log.xml
     {{#if address}}
     ports:
-      - {{lookup (tcp address) 'port'}}:{{lookup (tcp address) 'port'}}
+      {{#with (tcp address)}}
+      - {{port}}:{{port}}
+      {{/with}}
     {{/if}}
 
 {{/each}}

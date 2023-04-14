@@ -27,6 +27,10 @@ module.exports = {
       },
     );
 
+    Handlebars.registerHelper('uid', function() {
+      return process.getuid();
+    });
+
     Handlebars.registerHelper("select", function(...keys) {
       const _options = keys.pop();
       const items = keys.pop();
@@ -45,7 +49,7 @@ module.exports = {
       );
     });
 
-    Handlebars.registerHelper('tcp', (address) => {
+    Handlebars.registerHelper('tcp', function(address) {
       const { hostname, port } = new URL(`http://${address}`);
       return { host: hostname, port };
     });
