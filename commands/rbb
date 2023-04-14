@@ -206,7 +206,7 @@ function cli_config_render_templates() {
 	find -L "$PWD" "${CONFIG_ROOT}" "${VOLUMES_ROOT}" ! -path '*~/*' ! -path '*/.git/*' -name '*.hbs' -printf '%h\n' | 
 		sort -u | 
 		while read TEMPLATE_DIR; do
-			rbb config dump | hbs --stdin --stdout --helper ./templates/helpers.js -- ${GENESIS_TEMPLATE_PATH} > ${GENESIS_PATH}
+			rbb config dump | hbs --stdin --helper "${TEMPLATES_ROOT}"/*.js --output "${TEMPLATE_DIR}" -- "${TEMPLATE_DIR}"/*.hbs
 		done
 }
 
