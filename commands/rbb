@@ -279,6 +279,10 @@ function cli_genesis_create() {
 			shift 2
 			OPTS_BOOT_NODES="${OPTS_BOOT_NODES:+${OPTS_BOOT_NODES},}${NODES}"
 			;;
+		--save|-s)
+			local SAVE=1
+			shift
+			;;
 		--force|-f)
 			local FORCE=1
 			shift
@@ -296,20 +300,23 @@ function cli_genesis_create() {
 
 	#[[ -n "${VALIDATOR_NODES}" ]] || error_cli "must specify --validators for genesis create"
 
-	JQ_FILTERS=$(for name in $VALIDATOR_NODES; do
-		printf '.nodes["%s"].isValidator=true|' "${name}"
-	done)
-	JQ_FILTERS+=$(for spec in $BOOT_NODES; do
+	CONFIG_SET+=( $(for name in $VALIDATOR_NODES; do
+		printf 'nodes["%s"].isValidator=true'"\n" "${name}"
+	done) )
+	CONFIG_SET+=( $(for spec in $BOOT_NODES; do
 		local name="${spec%%:*}"
 		local address="${spec#*:}"
-		printf '.nodes["%s"]|=(.address="%s"|.isBoot=true)|' "${name}" "${address}"
-	done)
-	JQ_FILTERS+="."
+		printf 'nodes["%s"]|=(.address="%s"|.isBoot=true)'"\n" "${name}" "${address}"
+	done) )
+
+
 
 	if [[ -n "${FORCE}" ]] || ! besu_genesis_ready "${GENESIS_PATH}"; then
 		rbb config dump |
-			jq "${JQ_FILTERS}" |
-			hbs --stdin --stdout --helper "${TEMPLATES_ROOT}/"*.js -- "${GENESIS_TEMPLATE_PATH}" > "${GENESIS_PATH}"
+			rbb config set --stdin --dry-run "${CONFIG_SET[@]}" |
+			hbs --stdin --stdout --helper "${TEMPLATES_ROOT}/"*.js -- "${GENESIS_TEMPLATE_PATH}" | tee "${GENESIS_PATH}" 
+
+		[[ -n "${SAVE}" ]] && rbb config set "${CONFIG_SET[@]}" >/dev/null
 
 		info "${GENESIS_PATH} written"
 	else
