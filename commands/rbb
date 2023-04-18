@@ -208,7 +208,8 @@ function cli_config_set() {
 	local TMPFILE="$(mktemp --tmpdir infra.XXXXXX.json)"
 	( [[ -n "${STDIN}" ]] && cat - || cat "${INFRA_CONFIG_PATH}" 2>/dev/null || echo '{}' ) > "${TMPFILE}"
 
-	jq ".${FILTER}" "${TMPFILE}" | tee $([[ -n "${DRY_RUN}" ]] || echo "${INFRA_CONFIG_PATH}")
+	local FILTER=$(printf ".%s\n" "${FILTER[@]}" | tr $'\n' '|' | head -c -1)
+	jq "${FILTER}" "${TMPFILE}" | tee $([[ -n "${DRY_RUN}" ]] || echo "${INFRA_CONFIG_PATH}")
 
 	rm -f "${TMPFILE}"
 }
