@@ -29,6 +29,8 @@ ERROR_CLI=40
 ERROR_REFUSED=43
 ERROR_NOTIMPLEMENTED=50
 
+CLI_VERBOSE=1
+
 function info() {
 	local message="${1}"
 	[[ "${CLI_VERBOSE}" -ge 1 ]] || return
@@ -87,7 +89,7 @@ function cli() {
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 		--verbose|-v)
-			CLI_VERBOSE=1
+			CLI_VERBOSE=2
 			shift
 			;;
 		--version|-V)
