@@ -192,12 +192,8 @@ function cli_config_dump() {
 		# NODE_ENODE=$(besu_get_enode ${NODE_CONFIG_PATH})
 		printf '%s;%s;%s\n' ${NODE_NAME} ${NODE_ID} ${NODE_PUBLICKEY} #${NODE_ENODE}
 	done | 
-		jq --raw-input 'split(";") | { name: .[0], id: .[1], publicKey: .[2] }' |
-		jq --slurp '{ nodes: . }' |
-		jq --slurp '(
-			(.[].nodes // []) |= (map({key:.name, value:.}) | from_entries) 
-			| reduce .[] as $item ({}; . * $item) 
-		)' - $([[ -f "${INFRA_CONFIG_PATH}" ]] && echo "${INFRA_CONFIG_PATH}")
+		jq --raw-input 'split(";") | { nodes: { (.[0]): { id: .[1], publicKey: .[2], isLocal: true } } }' |
+		jq --slurp 'reduce .[] as $item ({}; . * $item)' - $([[ -f "${INFRA_CONFIG_PATH}" ]] && echo "${INFRA_CONFIG_PATH}")
 
 	eval "${_SHOPT}"
 }
