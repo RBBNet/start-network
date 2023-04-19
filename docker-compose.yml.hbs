@@ -15,7 +15,7 @@ x-defaults:
 
 services:
 
-{{#each nodes}}
+{{#each (where nodes isLocal=true)}}
   {{@key}}:
     image: ${IMAGE_BESU:-hyperledger/besu}
     logging: *logging-default
