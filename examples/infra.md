@@ -1,0 +1,13 @@
+## Nodes
+
+### plaintext
+
+- boot1
+ - id: 0xd8fa3cefe8c329c2152a9f007e6cbf68745cb45f
+ - enode: enode://89a5a0beabc62b15eccc7c5f05cf3e12f160a0733db53341d6ef09c59d53d3f4a0032778869b270f091c6b3dd035bafce67a6e5fefeb63f4abb77ed7388b732b@192.168.1.1:30303
+- validator1
+ - id: 0x7762bb4601ad32828d17759683e00767db7f4ce3
+ - enode: enode://0d3ec736c122b88f36eb7a6845ad996a1a1b9de135b8396e693806ccd4ee9420acf5a7a0ed4f64828e2444167bff3bdf4dd1c8129169bca5ca096adfdd5f019c@192.168.1.2:30303
+- tcu_validator1
+ - id: 
+ - enode: enode://89a5a0beabc62b15eccc7c5f05cf3e12f160a0733db53341d6ef09c59d53d3f4a0032778869b270f091c6b3dd035bafce67a6e5fefeb63f4abb77ed7388b732b@undefined
