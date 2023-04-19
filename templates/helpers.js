@@ -41,12 +41,16 @@ module.exports = {
     });
 
     Handlebars.registerHelper("enode", function(nodes) {
-      if (!(nodes instanceof Array)) {
-        nodes = [nodes];
+      let result;
+      if (nodes instanceof Array) {
+        result = nodes.map(({ publicKey, address }) => `enode://${publicKey.slice(2)}@${address}`);
+      } else if ('publicKey' in nodes) {
+        const { publicKey, address } = nodes;
+        result = `enode://${publicKey.slice(2)}@${address}`;
+      } else {
+        result = Object.values(nodes).map(({ publicKey, address }) => `enode://${publicKey.slice(2)}@${address}`);
       }
-      return nodes.map(({ publicKey, address }) =>
-        `enode://${publicKey.slice(2)}@${address}`
-      );
+      return result;
     });
 
     Handlebars.registerHelper('tcp', function(address) {
@@ -55,17 +59,27 @@ module.exports = {
     });
 
     Handlebars.registerHelper("pluck", function(key, items) {
-      return items.map((item) => item[key]);
+      if (items instanceof Array) {
+        return items.map((item) => item[key]);
+      } else {
+        return Object.values(items).map((item) => item[key]);
+      }
     });
 
     Handlebars.registerHelper("where", function(list, options) {
+      let result;
       if (!(list instanceof Array)) {
-        list = Object.values(list);
+        list = Object.entries(list);
+        result = list.filter(([_, item]) =>
+          Object.entries(options.hash).every(([key, value]) => item[key] == value)
+        );
+        result = Object.fromEntries(result);
+      } else {
+        result = list.filter((item) =>
+          Object.entries(options.hash).every(([key, value]) => item[key] == value)
+        );
       }
-
-      return list.filter((item) =>
-        Object.entries(options.hash).every(([key, value]) => item[key] == value)
-      );
+      return result;
     });
 
     Handlebars.registerHelper("json", function(x) {
