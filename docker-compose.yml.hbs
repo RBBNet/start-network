@@ -16,8 +16,8 @@ x-defaults:
 services:
 
 {{#each nodes}}
-  {{name}}:
-    image: ${IMAGE_BESU}
+  {{@key}}:
+    image: ${IMAGE_BESU:-hyperledger/besu}
     logging: *logging-default
     environment:
       << : *localization-default
@@ -28,25 +28,30 @@ services:
       BESU_REMOTE_CONNECTIONS_LIMIT_ENABLED: "false"
       BESU_DISCOVERY_ENABLED: "true"
       BESU_MIN_GAS_PRICE: "0"
-      {{#if address}}
-      {{#with (tcp address)}}
-      BESU_P2P_HOST: "{{host}}"
-      BESU_P2P_PORT: "{{port}}"
-      {{/with}}
-      {{/if}}
       BESU_RPC_HTTP_ENABLED: "true"
       BESU_RPC_HTTP_API: "ADMIN,ETH,TXPOOL,NET,IBFT,WEB3,DEBUG,TRACE,PERM"
       BESU_RPC_HTTP_CORS_ORIGINS: "*"
       BESU_HOST_ALLOWLIST: "*"
       BESU_METRICS_ENABLED: "true"
       BESU_METRICS_HOST: "0.0.0.0"
+      {{#if environment}}
+      {{#each environment}}
+      {{@key}}: "{{.}}"
+      {{/each}}
+      {{/if}}
+      {{#if address}}
+      {{#with (tcp address)}}
+      BESU_P2P_HOST: "{{host}}"
+      BESU_P2P_PORT: "{{port}}"
+      {{/with}}
+      {{/if}}
     user: "{{uid}}"
     command: >-
       --Xdns-enabled=true
       --Xdns-update-enabled=true
     volumes:
-      - ${PWD}/volumes/{{name}}/:/var/lib/besu/
-      - ${PWD}/.env.configs/nodes/{{name}}/key:/var/lib/besu/key
+      - ${PWD}/volumes/{{@key}}/:/var/lib/besu/
+      - ${PWD}/.env.configs/nodes/{{@key}}/key:/var/lib/besu/key
       - ${PWD}/.env.configs/genesis.json:/var/lib/besu/genesis.json
       - ${PWD}/.env.configs/log.xml:/var/lib/besu/log.xml
     {{#if address}}
