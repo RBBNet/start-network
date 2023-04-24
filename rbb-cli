@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 RBB_VERSION=${RBB_VERSION:-latest}
-RBB_IMAGE=${RBB_IMAGE:-rbb:${RBB_VERSION}}
+RBB_IMAGE=${RBB_IMAGE:-bndes/rbb:${RBB_VERSION}}
 
 docker run --rm -i \
 	--user $(id -u):$(id -g) \
