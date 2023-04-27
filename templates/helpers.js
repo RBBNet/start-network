@@ -54,6 +54,7 @@ module.exports = {
     });
 
     Handlebars.registerHelper('tcp', function(address) {
+      if (!address) return;
       const { hostname, port } = new URL(`http://${address}`);
       return { host: hostname, port };
     });
