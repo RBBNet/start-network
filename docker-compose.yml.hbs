@@ -38,17 +38,13 @@ services:
       BESU_PERMISSIONS_NODES_CONTRACT_ENABLED: "true"
       BESU_PERMISSIONS_NODES_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000009999"
       BESU_PERMISSIONS_NODES_CONTRACT_VERSION: "2"
-      {{#if environment}}
       {{#each environment}}
       {{@key}}: "{{.}}"
       {{/each}}
-      {{/if}}
-      {{#if address}}
       {{#with (tcp address)}}
       BESU_P2P_HOST: "{{host}}"
       BESU_P2P_PORT: "{{port}}"
       {{/with}}
-      {{/if}}
     user: "{{uid}}"
     command: >-
       --Xdns-enabled=true
