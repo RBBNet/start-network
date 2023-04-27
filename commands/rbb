@@ -324,8 +324,6 @@ function cli_genesis_create() {
 		printf 'nodes["%s"]|=(.address="%s"|.isBoot=true)'"\n" "${name}" "${address}"
 	done) )
 
-
-
 	if [[ -n "${FORCE}" ]] || ! besu_genesis_ready "${GENESIS_PATH}"; then
 		rbb config dump |
 			rbb config set --stdin --dry-run "${CONFIG_SET[@]}" |

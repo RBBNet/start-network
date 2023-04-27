@@ -33,5 +33,6 @@ COPY --from=hbs /app/ /opt/rbb/
 
 COPY docker/besu-logging-off.xml /var/lib/besu/logging-off.xml
 COPY commands/ /opt/rbb/
+COPY templates/ /opt/rbb/templates/
 
 ENTRYPOINT [ "/opt/rbb/rbb" ]
