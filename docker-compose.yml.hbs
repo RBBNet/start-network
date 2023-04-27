@@ -54,11 +54,14 @@ services:
       - ${PWD}/.env.configs/nodes/{{@key}}/key:/var/lib/besu/key
       - ${PWD}/.env.configs/genesis.json:/var/lib/besu/genesis.json
       - ${PWD}/.env.configs/log.xml:/var/lib/besu/log.xml
-    {{#if address}}
+    {{#if (fallback address ports)}}
     ports:
       {{#with (tcp address)}}
       - {{port}}:{{port}}
       {{/with}}
+      {{#each ports}}
+      - {{.}}
+      {{/each}}
     {{/if}}
 
 {{/each}}
