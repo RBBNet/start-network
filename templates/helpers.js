@@ -67,6 +67,11 @@ module.exports = {
       }
     });
 
+    Handlebars.registerHelper("merge", function(...lists) {
+      lists.pop();
+      return Object.assign(...lists);
+    });
+
     Handlebars.registerHelper("where", function(list, options) {
       let result;
       if (!(list instanceof Array)) {
