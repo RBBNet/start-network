@@ -57,7 +57,8 @@ services:
     {{#if (fallback address ports)}}
     ports:
       {{#with (tcp address)}}
-      - {{port}}:{{port}}
+      - {{port}}:{{port}}/tcp
+      - {{port}}:{{port}}/udp
       {{/with}}
       {{#each ports}}
       - {{.}}
