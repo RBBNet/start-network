@@ -18,6 +18,7 @@ services:
 {{#each (where nodes isLocal=true)}}
   {{@key}}:
     image: ${IMAGE_BESU:-hyperledger/besu}
+    restart: unless-stopped
     logging: *logging-default
     environment:
       << : *localization-default
