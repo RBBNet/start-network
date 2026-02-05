@@ -20,8 +20,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 6G
+          cpus: "${CPUS_LIMIT_BESU_CONTAINER:-2}"
+          memory: ${MEMORY_LIMIT_BESU_CONTAINER:-6G}
     image: ${IMAGE_BESU:-hyperledger/besu}
     restart: unless-stopped
     logging: *logging-default
